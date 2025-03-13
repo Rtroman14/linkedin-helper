@@ -30,11 +30,21 @@ class LinkedIn {
 
             console.log("CONTACT REPLIED");
             console.log("webhookData.messagesInfo\n", webhookData.messagesInfo);
-            console.log("webhookData.fullMessagingHistory\n", webhookData.fullMessagingHistory);
             console.log(
                 "webhookData.lastSendAndReceivedMessages\n",
                 webhookData.lastSendAndReceivedMessages
             );
+
+            console.log(
+                "webhookData.lastSendAndReceivedMessages.sent.chat.messages",
+                webhookData.lastSendAndReceivedMessages.sent.chat.messages
+            );
+            console.log(
+                "webhookData.lastSendAndReceivedMessages.received.chat.messages",
+                webhookData.lastSendAndReceivedMessages.received.chat.messages
+            );
+
+            const mostRecentMessage = webhookData.lastSendAndReceivedMessages.sent.message.text;
 
             // Create a version of the URL without trailing slash if it exists
             const linkedinUrlNoSlash = linkedinUrl.endsWith("/")
@@ -75,7 +85,7 @@ class LinkedIn {
                 "In Campaign": true,
                 // Conversation: conversation,
                 Responded: true,
-                Response: webhookData.messagesInfo[0].message.text || "",
+                Response: mostRecentMessage || "",
                 "Response Date": new Date().toISOString(),
                 Source: "LinkedIn",
             };
@@ -93,7 +103,7 @@ class LinkedIn {
                 );
 
                 const slackMessage = `\n*From:* _<${linkedinUrl}|${fullName}>_\n*Response* _"${
-                    webhookData.messagesInfo[0].message.text || ""
+                    mostRecentMessage || ""
                 }"_`;
 
                 await slackNotification("Contact Replied", slackMessage, "#linkedin");
