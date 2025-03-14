@@ -17,6 +17,9 @@ class LinkedIn {
                 };
             }
 
+            console.log("WEBHOOK-DATA");
+            console.log(JSON.stringify(webhookData));
+
             // 2. Search for existing record by LinkedIn URL
             const linkedinUrl = webhookData.profileUrl;
             if (!linkedinUrl) {
@@ -72,15 +75,18 @@ class LinkedIn {
             const fullName =
                 webhookData.miniProfile.firstName + " " + webhookData.miniProfile.lastName || "";
 
+            const title =
+                webhookData.currentPosition?.position || webhookData.miniProfile.headline || "";
+            const companyName = webhookData.currentPosition?.company || "";
+
             // 3. Prepare data for Airtable
             const airtableData = {
                 "Full Name": fullName,
                 "First Name": webhookData.miniProfile.firstName || "",
                 "Last Name": webhookData.miniProfile.lastName || "",
                 Email: webhookData.email?.email || "",
-                "Company Name": webhookData.currentPosition?.company || "",
-                Title:
-                    webhookData.currentPosition?.position || webhookData.miniProfile.headline || "",
+                "Company Name": companyName,
+                Title: title,
                 Address: webhookData.location?.name || "",
                 "In Campaign": true,
                 // Conversation: conversation,
@@ -102,7 +108,7 @@ class LinkedIn {
                     airtableData
                 );
 
-                const slackMessage = `\n*From:* _<${linkedinUrl}|${fullName}>_\n*Response* _"${
+                const slackMessage = `\n*From:* _<${linkedinUrl}|${fullName}>_\n*Title:* _${title}_\n*Company:* _${companyName}_\n*Response* _"${
                     mostRecentMessage || ""
                 }"_`;
 
