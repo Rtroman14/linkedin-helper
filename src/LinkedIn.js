@@ -38,15 +38,6 @@ class LinkedIn {
                 webhookData.lastSendAndReceivedMessages
             );
 
-            console.log(
-                "webhookData.lastSendAndReceivedMessages.sent.chat.messages",
-                webhookData.lastSendAndReceivedMessages.sent.chat.messages
-            );
-            console.log(
-                "webhookData.lastSendAndReceivedMessages.received.chat.messages",
-                webhookData.lastSendAndReceivedMessages.received.chat.messages
-            );
-
             const mostRecentMessage = webhookData.lastSendAndReceivedMessages.sent.message.text;
 
             // Create a version of the URL without trailing slash if it exists
@@ -61,16 +52,8 @@ class LinkedIn {
                 `OR({LinkedIn URL} = "${linkedinUrl}", {LinkedIn URL} = "${linkedinUrlNoSlash}")`
             );
 
-            // Format conversation
-            const conversation = webhookData.messagesInfo
-                .map((info) => {
-                    const sender =
-                        info.miniProfile.firstName === webhookData.my_full_name
-                            ? "company"
-                            : "prospect";
-                    return `${sender}: ${info.message.text}`;
-                })
-                .join("\n\n");
+            // Format the lastSendAndReceivedMessages into a conversation snippet
+            const conversationSnippet = `company: ${webhookData.lastSendAndReceivedMessages.received.message.text}\nuser: ${webhookData.lastSendAndReceivedMessages.sent.message.text}`;
 
             const fullName =
                 webhookData.miniProfile.firstName + " " + webhookData.miniProfile.lastName || "";
@@ -101,6 +84,19 @@ class LinkedIn {
             // Update existing record
             if (existingRecords && existingRecords.length > 0) {
                 const recordId = existingRecords[0].recordID;
+
+                // Append new conversation snippet to existing conversation if it exists
+                let updatedConversation = conversationSnippet;
+                if (existingRecords[0].fields && existingRecords[0].fields.Conversation) {
+                    updatedConversation = `${existingRecords[0].fields.Conversation}\n${conversationSnippet}`;
+                }
+
+                // Add Conversation field to airtableData
+                airtableData.Conversation = updatedConversation;
+
+                console.log("CONVERSATION");
+                console.log(airtableData.Conversation);
+
                 result = await Airtable.updateRecord(
                     AIRTABLE_BASE_ID,
                     "Prospects",
