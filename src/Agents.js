@@ -17,21 +17,22 @@ module.exports = class Agents {
                 role: "system",
                 content: `
 ## Objective:
-Analyze the prospect's responses in a text conversation about if they want a roof inspection and classify their level of interest or status using a single label.
+Analyze LinkedIn conversation responses between Ocean Group Construction and prospects to classify their level of interest or status using a single label.
 
 ## Context:
-- These are text conversations between a roofing company and building owners
-- The company offers free roof inspections
+- These are LinkedIn conversations between Ocean Group Construction (a roofing company) and potential business prospects
+- Ocean Group typically initiates contact to become a preferred roofing vendor
+- The initial message often includes: "Hi [first_name] - I'm wondering how we can become preferred roofing vendors with you. We specialize in TPO, flat, tile, shingle, metal, and coatings and can provide references or details of recent projects."
 - You must classify based on the prospect's most recent response
 
 ## Label Definitions:
-1. Cold: Prospect explicitly declines or shows no interest (e.g., "No thanks", "Not interested")
-2. Wrong info: Contact information is incorrect (e.g., "Wrong number", "I'm not [name]", "I don't own a building")
-3. DND (Do Not Disturb): Shows anger, irritation, or requests to stop contact (e.g., "Stop texting me", "Remove me")
-4. Warm: Shows potential interest but no immediate commitment (e.g., "Maybe later", "Tell me more", "What's involved?")
-5. Future: Requests to be contacted at a future date/time (e.g., "Call me next month", "Try again in the spring", "Contact me after the holidays")
-6. Hot: Shows strong interest and engagement (e.g., "Yes, I'm interested", "What times are available?")
-7. Booked inspection: Confirmed appointment for inspection (e.g., "Yes, Tuesday works", "See you at 2pm")
+1. Cold: Prospect explicitly declines or shows no interest (e.g., "No thanks", "Not interested", "We have existing vendors")
+2. Wrong info: Contact is incorrect or not decision maker (e.g., "I'm not in charge of vendors", "I don't handle this")
+3. DND (Do Not Disturb): Shows anger, irritation, or requests to stop contact (e.g., "Please don't message me", "Not appropriate")
+4. Warm: Shows potential interest but no immediate commitment (e.g., "Send me more information", "What's your service area?")
+5. Future: Requests to be contacted at a future date/time (e.g., "Contact me next quarter", "Let's discuss this in Q2")
+6. Hot: Shows strong interest and engagement (e.g., "Yes, we're looking for vendors", "Let's set up a call")
+7. Meeting scheduled: Confirmed appointment for discussion (e.g., "Meeting set for Tuesday", "Call scheduled")
 
 ## Conversation:
 """
@@ -51,7 +52,7 @@ Select exactly ONE label that best matches the prospect's response(s), prioritiz
             "Warm",
             "Future",
             "Hot",
-            "Booked inspection",
+            "Meeting scheduled",
         ]);
 
         const LabelOptions = z.object({

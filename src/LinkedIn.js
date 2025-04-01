@@ -1,6 +1,7 @@
 require("dotenv").config();
 const Airtable = require("./Airtable");
 const slackNotification = require("./slackNotification");
+const Agents = require("./Agents");
 
 const AIRTABLE_BASE_ID = "appO4M5tv5lukVPRX";
 
@@ -91,11 +92,53 @@ class LinkedIn {
                     updatedConversation = `${existingRecords[0].fields.Conversation}\n${conversationSnippet}`;
                 }
 
+                const Agent = new Agents({
+                    apiKey: process.env.OPENAI_API_KEY,
+                    temperature: 0,
+                    model: "gpt-4o",
+                });
+
+                const statusRes = await Agent.conversationStatus({
+                    conversation: updatedConversation,
+                });
+                if (!statusRes.success) throw new Error(statusRes.message);
+                const status = statusRes.data.label;
+
                 // Add Conversation field to airtableData
                 airtableData.Conversation = updatedConversation;
+                airtableData.Status = status;
 
                 console.log("CONVERSATION");
                 console.log(airtableData.Conversation);
+
+                const emoji = {
+                    "Booked inspection": "_Booked inspection_ :handshake::skin-tone-3:",
+                    Hot: "_Hot_ :fire:",
+                    Warm: "_Warm_ :sunny:",
+                    Future: "_Future_ :calendar:",
+                    null: ":man-shrugging::skin-tone-3:",
+                };
+
+                if (["Hot", "Warm", "Booked inspection", "Future", null].includes(status)) {
+                    const slackMessage = `\n*Status:* ${
+                        emoji[status]
+                    }\n*From:* _<${linkedinUrl}|${fullName}>_\n*Title:* _${title}_\n*Company:* _${companyName}_\n*Response* _"${
+                        mostRecentMessage || ""
+                    }"_`;
+
+                    if (status === "Future") {
+                        // * pass conversation to ChatGPT to get date
+                        const followUpDateRes = await Agent.futureDate({
+                            conversation: updatedConversation,
+                        });
+                        if (!followUpDateRes.success) throw new Error(followUpDateRes.message);
+
+                        const followUpDate = followUpDateRes.data.date;
+                        airtableData["Follow Up"] = followUpDate;
+                    }
+
+                    await slackNotification("Contact Replied", slackMessage, "#linkedin");
+                }
 
                 result = await Airtable.updateRecord(
                     AIRTABLE_BASE_ID,
@@ -103,12 +146,6 @@ class LinkedIn {
                     recordId,
                     airtableData
                 );
-
-                const slackMessage = `\n*From:* _<${linkedinUrl}|${fullName}>_\n*Title:* _${title}_\n*Company:* _${companyName}_\n*Response* _"${
-                    mostRecentMessage || ""
-                }"_`;
-
-                await slackNotification("Contact Replied", slackMessage, "#linkedin");
 
                 return {
                     success: true,
