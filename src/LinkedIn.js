@@ -134,7 +134,9 @@ class LinkedIn {
                         if (!followUpDateRes.success) throw new Error(followUpDateRes.message);
 
                         const followUpDate = followUpDateRes.data.date;
-                        airtableData["Follow Up"] = followUpDate;
+                        if (followUpDate && followUpDate !== "") {
+                            airtableData["Follow Up"] = followUpDate;
+                        }
                     }
 
                     await slackNotification("Contact Replied", slackMessage, "#linkedin");
