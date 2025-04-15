@@ -236,6 +236,7 @@ class LinkedIn {
                 Address: webhookData.location_name || "",
                 "In Campaign": true,
                 Source: "LinkedIn",
+                Status: "Nurturing",
             };
 
             let result;
