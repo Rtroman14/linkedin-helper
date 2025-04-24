@@ -139,6 +139,17 @@ class LinkedIn {
                         }
                     }
 
+                    const determineFollowUpResult = await Agent.determineFollowUp({
+                        message: mostRecentMessage,
+                    });
+                    if (determineFollowUpResult.success) {
+                        const { invited_to_email, email_address } = determineFollowUpResult.data;
+
+                        if (invited_to_email && email_address) {
+                            // TODO: draft email
+                        }
+                    }
+
                     await slackNotification("Contact Replied", slackMessage, "#linkedin");
                 }
 

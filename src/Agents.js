@@ -1,7 +1,12 @@
+require("dotenv").config();
+
 const OpenAI = require("openai");
 
-const { z } = require("zod");
 const { zodResponseFormat } = require("openai/helpers/zod");
+
+const { generateObject, generateText } = require("ai");
+const { z } = require("zod");
+const { createOpenAI } = require("@ai-sdk/openai");
 
 module.exports = class Agents {
     constructor({ apiKey, temperature, model }) {
@@ -150,6 +155,140 @@ Example outputs:
         } catch (error) {
             console.error(error);
             return { success: false, data: null, error: error.message };
+        }
+    };
+
+    determineFollowUp = async ({ message }) => {
+        const openai = createOpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+        try {
+            const result = await generateObject({
+                model: openai("gpt-4o"),
+                temperature: 0,
+                schema: z.object({
+                    invited_to_email: z
+                        .boolean()
+                        .describe(
+                            "Whether the prospect has invited Ocean Group to send an email with more information."
+                        ),
+                    email_address: z
+                        .string()
+                        .nullable()
+                        .describe(
+                            "The email address provided by the prospect for follow-up, if present in the message. Set to null if no email address is found."
+                        ),
+                }),
+                system: `You are an AI assistant helping to analyze responses from a LinkedIn messaging campaign for Ocean Group Construction, a roofing company. Your task is to determine if the prospect has invited Ocean Group to send an email with more information and to extract any email address provided for follow-up. Follow these guidelines:
+                1. Set 'invited_to_email' to true if the prospect explicitly or implicitly invites Ocean Group to send an email with more information (e.g., 'Please send me an email with details', 'Can you email me more info?', 'I am happy to pass your information along if you want to email me').
+                2. Set 'email_address' to the specific email address found in the message (e.g., 'stephanie@example.com'). If no email address is present, set it to null.
+                3. If the invitation or email is ambiguous or not stated, set the respective field to false or null.
+                4. Focus only on the content of the provided message.`,
+                prompt: `Analyze the following LinkedIn message from a prospect to determine if they are inviting Ocean Group Construction to send an email with more information and to extract any email address provided for follow-up.
+
+Message: <linkedin_message>${message}</linkedin_message>`,
+            });
+
+            return {
+                success: true,
+                data: result.object,
+            };
+        } catch (error) {
+            console.error("Error in determineFollowUp:", error);
+            return {
+                success: false,
+                message: error.message || "Failed to analyze follow-up request",
+            };
+        }
+    };
+
+    draftEmailPersonalization = async ({ conversation }) => {
+        const openai = createOpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        try {
+            const result = await generateText({
+                model: openai("gpt-4o"),
+                temperature: 0.7,
+                system: `You are an AI assistant helping to draft a personalized opening line for an email to a LinkedIn prospect on behalf of Ocean Group Construction, a roofing company. Your task is to create a single line that references the specific interaction from the provided LinkedIn conversation to make the email feel tailored and relevant. Follow these guidelines:
+                1. Keep the tone professional yet friendly.
+                2. Reference a specific point from the conversation to show continuity (e.g., a question they asked, a topic they mentioned).
+                3. Ensure the line transitions naturally into providing more information about the company.
+                4. Output only the personalized line, nothing else.
+                5. Avoid generic statements that could apply to anyone; make it specific to this interaction.`,
+                prompt: `Based on the following LinkedIn conversation and the overall email draft, draft a personalized opening line for an email to the prospect. The line should reference our interaction and lead into sharing more information about Ocean Group Construction.
+
+Conversation:
+"""
+${conversation}
+"""
+
+Email Draft:
+"""
+Hi {{first_name}},
+
+[Personalized Line Goes Here]
+
+We are a Roofing contractor, fully licensed and insured with workers comp. My team has been roofing in Florida for over 20 years and we are extremely passionate about what we do.
+
+We build TPO, Tile, Shingle, Metal (5v + standing seam), and Modified roof systems. We have unmarked trucks and trailers as well as bi-lingual project managers for every project.
+
+Below, I have provided a link to our website's project page as well as some references and photos of projects I completed in South FL over the last few weeks. 
+
+<a href="https://www.ogroof.com/project">https://www.ogroof.com/project</a>
+
+List of References:
+
+1. American Building Contractors
+Josh Kestner: 239-777-0459
+<a href="mailto:josh.kestner@abc-usa.com">josh.kestner@abc-usa.com</a>
+
+2. Blusky Restoration
+Zac Whittle: 502-655-9044
+<a href="mailto:zac.whittle@goblusky.com">zac.whittle@goblusky.com</a>
+
+3. Double G Construction
+Bob Palmiere: 561-376-8495
+<a href="mailto:bob@doublegconstruction.com">bob@doublegconstruction.com</a>
+
+4. ATI Restoration
+John Clabeaux: 480-688-7603
+<a href="mailto:clabeaux.jj@gmail.com">clabeaux.jj@gmail.com</a>
+
+5. Kris Konstruction
+Mike Shifter: 813-376-6268
+<a href="mailto:mschifter@kriskonstruction.com">mschifter@kriskonstruction.com</a>
+
+{{image}}
+4,000 SQ TILE Remove and Replace
+9270 Belleza Way Fort Myers, FL 33908
+
+{{image}}
+330 SQ Remove modified insall Firestone TPO
+4519 Del Prado Blvd S Cape Coral, FL 33904
+
+{{image}}
+330SQ Flute Filled Rhinobond TPO Roof System installed over Standing seam
+14601 6 Mile Cypress Pkwy Fort Myers, FL 33912
+
+Sophia Ochoa 
+
+Account Manager 
+Ocean Construction Group 
+"""`,
+            });
+
+            return {
+                success: true,
+                data: result.text,
+            };
+        } catch (error) {
+            console.error("Error in draftEmailPersonalization:", error);
+            return {
+                success: false,
+                message: error.message || "Failed to draft personalized email line",
+            };
         }
     };
 };
