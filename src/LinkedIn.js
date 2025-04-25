@@ -2,6 +2,7 @@ require("dotenv").config();
 const Airtable = require("./Airtable");
 const slackNotification = require("./slackNotification");
 const Agents = require("./Agents");
+const createDraftEmail = require("./draft-email");
 
 const AIRTABLE_BASE_ID = "appO4M5tv5lukVPRX";
 
@@ -146,7 +147,27 @@ class LinkedIn {
                         const { invited_to_email, email_address } = determineFollowUpResult.data;
 
                         if (invited_to_email && email_address) {
-                            // TODO: draft email
+                            const createPersonalizedLine = await Agent.draftEmailPersonalization({
+                                conversation: updatedConversation,
+                                mostRecentMessage,
+                            });
+
+                            if (createPersonalizedLine.success) {
+                                // Draft and notify about the email
+                                const draftResult = await createDraftEmail({
+                                    email: email_address,
+                                    firstName: webhookData.miniProfile.firstName,
+                                    personalizedLine: createPersonalizedLine.data,
+                                });
+
+                                if (draftResult.success) {
+                                    await slackNotification(
+                                        "Email Drafted",
+                                        `Drafted email for ${fullName}`,
+                                        "#linkedin"
+                                    );
+                                }
+                            }
                         }
                     }
 

@@ -202,7 +202,7 @@ Message: <linkedin_message>${message}</linkedin_message>`,
         }
     };
 
-    draftEmailPersonalization = async ({ conversation }) => {
+    draftEmailPersonalization = async ({ conversation, mostRecentMessage }) => {
         const openai = createOpenAI({
             apiKey: process.env.OPENAI_API_KEY,
         });
@@ -210,18 +210,25 @@ Message: <linkedin_message>${message}</linkedin_message>`,
         try {
             const result = await generateText({
                 model: openai("gpt-4o"),
-                temperature: 0.7,
+                temperature: 0.3,
                 system: `You are an AI assistant helping to draft a personalized opening line for an email to a LinkedIn prospect on behalf of Ocean Group Construction, a roofing company. Your task is to create a single line that references the specific interaction from the provided LinkedIn conversation to make the email feel tailored and relevant. Follow these guidelines:
                 1. Keep the tone professional yet friendly.
                 2. Reference a specific point from the conversation to show continuity (e.g., a question they asked, a topic they mentioned).
                 3. Ensure the line transitions naturally into providing more information about the company.
                 4. Output only the personalized line, nothing else.
-                5. Avoid generic statements that could apply to anyone; make it specific to this interaction.`,
-                prompt: `Based on the following LinkedIn conversation and the overall email draft, draft a personalized opening line for an email to the prospect. The line should reference our interaction and lead into sharing more information about Ocean Group Construction.
+                5. Avoid generic statements that could apply to anyone; make it specific to this interaction.
+                6. Since the conversation is moving from LinkedIn to email, explicitly mention LinkedIn in the personalized line to acknowledge the channel transition (e.g., 'Following up on our LinkedIn conversation...').
+                Note: The initial outreach message from Ocean Group Construction is often: "Hi {{first_name}} - I'm wondering how we can become preferred roofing vendors with you. We specialize in TPO, flat, tile, shingle, metal, and coatings and can provide references or details of recent projects." Use this as context if the conversation's beginning is missing.`,
+                prompt: `Based on the following LinkedIn conversation, the most recent message, and the overall email draft, draft a personalized opening line for an email to the prospect. The line should reference our interaction, mention LinkedIn to acknowledge the transition to email, and lead into sharing more information about Ocean Group Construction.
 
 Conversation:
 """
 ${conversation}
+"""
+
+Most Recent Message:
+"""
+${mostRecentMessage}
 """
 
 Email Draft:
